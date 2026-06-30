@@ -21,11 +21,17 @@ project.
 
 ## Installation
 
+> Version-pinned installation resolves once the first beta is tagged (GF-219).
+> Until then, depend on the `main` branch.
+
 Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", from: "0.0.0")
+// After the first beta tag:
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", from: "0.1.0")
+// Before then:
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", branch: "main")
 ```
 
 Then add `GleanFeed` to your target's dependencies and:
