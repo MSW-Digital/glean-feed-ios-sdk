@@ -9,6 +9,10 @@ let package = Package(
     name: "GleanFeed",
     platforms: [
         .iOS(.v14),
+        // macOS floor exists only so `swift test` builds on a macOS CI host
+        // (Swift concurrency needs 10.15+). iOS 14 is the product target; this
+        // SDK is not a macOS product.
+        .macOS(.v11),
     ],
     products: [
         .library(name: "GleanFeed", targets: ["GleanFeed"]),
