@@ -3,6 +3,13 @@ import XCTest
 @testable import GleanFeed
 
 final class GleanFeedClientTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        // Self-defending: don't inherit global state from a prior case.
+        MockURLProtocol.reset()
+        GleanFeed.shared = nil
+    }
+
     override func tearDown() {
         MockURLProtocol.reset()
         GleanFeed.shared = nil
@@ -30,6 +37,42 @@ final class GleanFeedClientTests: XCTestCase {
         await assertThrows(.invalidResponse) {
             try await client.identify(userId: "u1", email: nil, name: nil, signature: "sig")
         }
+    }
+
+    func testIdentifyFailsClosedWhenPersistenceFails() async {
+        // A Keychain write failure must fail identify, not leave it half-applied
+        // (identified in memory but with no persisted token).
+        MockURLProtocol.handler = Fixtures.routeOK
+        let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: FailingTokenStore())
+
+        await assertThrows(.storage) {
+            try await client.identify(userId: "u1", email: "a@b.com", name: nil, signature: "sig")
+        }
+        XCTAssertFalse(client.isIdentified)
+    }
+
+    /// `URLProtocol` can't see the streamed `httpBody`, so assert the wire contract
+    /// at the encoder — the exact code path `APIClient.identify` runs.
+    func testIdentifyRequestEncodesExpectedFields() throws {
+        let withProfile = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(
+                IdentifyRequest(workspaceId: "w1", userId: "u1", email: "a@b.com", name: "A B", signature: "sig")
+            )
+        ) as? [String: Any]
+        XCTAssertEqual(withProfile?["workspaceId"] as? String, "w1")
+        XCTAssertEqual(withProfile?["userId"] as? String, "u1")
+        XCTAssertEqual(withProfile?["email"] as? String, "a@b.com")
+        XCTAssertEqual(withProfile?["name"] as? String, "A B")
+        XCTAssertEqual(withProfile?["signature"] as? String, "sig")
+
+        // nil email/name are omitted (not encoded as null) — the legacy
+        // `workspaceId:userId` signature path depends on this.
+        let anonymous = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(
+                IdentifyRequest(workspaceId: "w1", userId: "u1", email: nil, name: nil, signature: "sig")
+            )
+        ) as? [String: Any]
+        XCTAssertEqual(anonymous?.keys.sorted(), ["signature", "userId", "workspaceId"])
     }
 
     func testIdentifyRejectedOnUnauthorized() async {

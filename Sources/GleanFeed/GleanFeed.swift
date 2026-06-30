@@ -18,7 +18,8 @@ public enum GleanFeed {
     public static let version = "0.0.0"
 
     /// The runtime created by `setup`. Internal so tests can inject a client
-    /// built with a mocked `URLSession` / token store.
+    /// built with a mocked `URLSession` / token store. Set once in `setup` (call
+    /// early, before use); revisit isolation at the Swift 6 language-mode migration.
     static var shared: GleanFeedClient?
 
     /// Configure the SDK. Call once, early (e.g. in `application(_:didFinishLaunchingWithOptions:)`).

@@ -11,6 +11,14 @@ final class InMemoryTokenStore: TokenStore {
     func clear() throws { token = nil }
 }
 
+/// A `TokenStore` whose writes always fail — exercises the fail-closed
+/// persistence path in `identify`.
+struct FailingTokenStore: TokenStore {
+    func saveUserToken(_ token: String) throws { throw GleanFeedError.storage }
+    func userToken() -> String? { nil }
+    func clear() throws { throw GleanFeedError.storage }
+}
+
 /// A stubbed `URLProtocol` that answers requests from a per-test handler keyed on
 /// the request URL. Lets us drive the SDK's networking without a server.
 final class MockURLProtocol: URLProtocol {

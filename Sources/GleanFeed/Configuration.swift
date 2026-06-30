@@ -8,6 +8,8 @@ public enum GleanFeedEnvironment {
 
     /// A custom backend origin — local dev, staging, or self-hosted. Pass the
     /// Glean Feed app origin that serves `/api/sdk/*` (scheme + host only, no path).
+    /// Use HTTPS outside local dev — tokens ride on this origin (iOS App Transport
+    /// Security blocks cleartext by default).
     case custom(baseURL: URL)
 
     var baseURL: URL {

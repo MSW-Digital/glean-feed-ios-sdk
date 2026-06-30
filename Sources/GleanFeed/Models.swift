@@ -37,6 +37,8 @@ struct PortalConfigResponse: Decodable {
 
     struct Branding: Decodable {
         let accentColor: String?
-        let buttonIcon: String
+        // Optional so a workspace with branding unset never fails the whole
+        // portal-config decode — surfaceURL doesn't need branding at all.
+        let buttonIcon: String?
     }
 }

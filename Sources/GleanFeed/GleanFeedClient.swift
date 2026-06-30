@@ -43,9 +43,10 @@ final class GleanFeedClient {
             )
         )
 
-        // Best-effort persist: a Keychain hiccup shouldn't fail an otherwise-good
-        // identify — the session still works in memory this launch.
-        try? tokenStore.saveUserToken(response.userToken)
+        // Fail closed: persist the long-lived token BEFORE claiming identity, so we
+        // never report `isIdentified == true` with no stored token (which GF-216's
+        // cookieless polls depend on). A storage failure surfaces as `.storage`.
+        try tokenStore.saveUserToken(response.userToken)
 
         lock.lock()
         ssoToken = response.ssoToken
@@ -56,6 +57,10 @@ final class GleanFeedClient {
     /// Clears SDK tokens and in-memory identity. Does NOT touch the host app's
     /// own auth.
     func logout() {
+        // ponytail: clear() failure is swallowed to keep logout non-throwing.
+        // In-memory identity is always cleared below; the rare case where the
+        // Keychain delete fails (e.g. device locked) leaves the persisted token.
+        // Harden before GF-216 ships — that's the milestone that reads it.
         try? tokenStore.clear()
         lock.lock()
         ssoToken = nil
