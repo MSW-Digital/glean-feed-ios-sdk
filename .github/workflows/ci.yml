@@ -11,11 +11,28 @@ concurrency:
 
 jobs:
   test:
-    name: swift test
+    name: swift test (macOS host)
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Swift version
         run: swift --version
+      # Runs the platform-agnostic logic tests (URL resolution, navigation policy).
+      # iOS-only presentation code is #if-excluded here; see the ios-build job.
       - name: Build and test
         run: swift test
+
+  ios-build:
+    name: build (iOS Simulator)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      # Compile-checks the iOS-only presentation layer (UIKit/WebKit/SwiftUI),
+      # which `swift test` on the macOS host does not build. Behavior itself is
+      # covered by manual simulator QA (docs/simulator-qa.md).
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme GleanFeed \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
