@@ -84,6 +84,21 @@ Sign the user out of Glean Feed (does not touch your app's own auth):
 GleanFeed.logout()
 ```
 
+## Unread count (badge)
+
+Show a native "What's new" badge for signed-in users. Returns `0` for anonymous
+or stale identities; call with `try?` to leave the badge as-is on a transient
+error:
+
+```swift
+// e.g. on foreground, or in a settings row
+let count = (try? await GleanFeed.unreadCount()) ?? 0
+settingsRow.badge = count > 0 ? "\(count)" : nil
+```
+
+There's no push, background polling, or app-icon badging in v1 — poll
+`unreadCount()` from your own foreground refresh when you want a fresh value.
+
 ## Diagnostics (optional)
 
 To attach bounded app/device context to an identified user, call:
