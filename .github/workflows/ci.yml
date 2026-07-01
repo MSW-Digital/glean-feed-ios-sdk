@@ -39,7 +39,9 @@ jobs:
 
   sample-build:
     name: build sample (iOS Simulator)
-    runs-on: macos-14
+    # macos-15 ships Xcode 16.x, which reads the generated project's objectVersion
+    # 77 (XcodeGen 2.45's format); Xcode 15.4 on macos-14 cannot.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       # Compile-checks the sample app against the local package. Behavior is
