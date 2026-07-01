@@ -1,45 +1,60 @@
-# Simulator QA — presentation (GF-214)
+# Simulator QA harness
 
-`swift test` covers the URL-resolution and navigation-policy logic. Actual
-`WKWebView` behavior is verified by hand in the simulator until the sample app
-lands (GF-217). Run through this after changing the presentation layer.
+`swift test` covers the pure logic (URL resolution, navigation policy, token/
+diagnostics/notification behavior). Actual `WKWebView` presentation and the
+end-to-end flows are verified by hand in the simulator using the **sample app**
+until automated UI testing lands.
 
-Setup once in the host/sample app:
+## Running the sample
 
-```swift
-GleanFeed.setup(workspaceId: "<uuid>", workspaceSlug: "<slug>")
-```
+The sample is a standalone App package at [`../Sample`](../Sample) (kept as its
+own package so `import AppleProductTypes` stays out of the root `Package.swift`).
+
+1. Open the `Sample` folder in Xcode (`File → Open…` → `Sample`), or run
+   `xcodebuild build -scheme GleanFeedSample -destination 'generic/platform=iOS Simulator'`.
+2. Edit `Sample/Sources/GleanFeedSample/SampleConfig.swift` — set your
+   `workspaceId` and `workspaceSlug` (both are public), and `.production` or a
+   `.custom(baseURL:)` local dev origin. **No workspace secret goes in the app.**
+3. Generate a signed `signature` on your backend (HMAC over the workspace secret)
+   and paste it into the app's Signature field to test signed mode.
+4. Run on a simulator.
 
 ## Checklist
 
-**Anonymous**
-- [ ] `GleanFeed.showFeedback()` presents a full-height sheet with a native **Done** button.
-- [ ] The feedback surface loads (public portal, signed-out).
-- [ ] `showRoadmap()` and `showChangelog()` each open the right surface.
-- [ ] **Done** dismisses the sheet.
+Run the full list on **two simulators**: the **iOS 14 baseline** and the
+**latest iOS**.
 
-**Authenticated**
-- [ ] After `try await GleanFeed.identify(userId:email:signature:)`, `showFeedback()` lands signed-in (SSO handoff → surface).
-- [ ] Open, dismiss, and open again — the **second open is still signed-in** (rides the session cookie; the SSO token is consumed on the first open).
-- [ ] `GleanFeed.logout()` then `showFeedback()`: note the v1 limitation — the WebView portal session cookie is not cleared, so this may still show signed-in until the portal session expires.
+**Setup / anonymous**
+- [ ] App launches; `GleanFeed.setup(...)` ran (no crash, "Anonymous" status).
+- [ ] `Show Feedback` / `Roadmap` / `Changelog` each present a full-height sheet with a native **Done** button, loading spinner, then the public (signed-out) surface.
+- [ ] **Done** dismisses.
+
+**Signed**
+- [ ] Paste userId + a valid backend signature → **Identify** → status shows signed-in.
+- [ ] `Show Feedback` now lands **signed-in** (SSO handoff → surface).
+- [ ] Dismiss and reopen — still signed-in (SSO token consumed once; rides the session cookie).
+
+**Logout**
+- [ ] **Logout** → status "Anonymous", unread resets to 0.
+- [ ] (Known v1 limitation) a surface opened right after logout may still show signed-in until the portal session expires — the WebView cookie isn't cleared yet (GF-214 carryover).
 
 **Navigation containment**
-- [ ] Tapping an in-portal link stays inside the WebView.
-- [ ] Tapping an external link (e.g. a "Powered by" link, a third-party URL) opens in the **system browser**, not the SDK WebView.
-- [ ] `mailto:` / `tel:` links leave the WebView.
-- [ ] A link to a non-portal host or an app-scheme deep link (`sms:`, `customapp://`) does **not** silently launch another app — only `http`/`https`/`mailto`/`tel` are handed to the system.
+- [ ] An in-portal link stays inside the WebView.
+- [ ] An external link (third-party URL, "Powered by") opens in the **system browser**, not the SDK WebView.
+- [ ] `mailto:`/`tel:` leave the WebView; an app-scheme deep link does **not** silently launch another app.
 
-**Pushed presentation (UIKit)**
-- [ ] From within your own `UINavigationController`, `GleanFeed.pushFeedback(onto: nav)` pushes the surface with a back button (no Done button); back returns to your screen.
+**Failed network**
+- [ ] Turn the network off (simulator or device). Present a surface → the failure label shows; tap it to retry.
+- [ ] `Refresh unread` with the network off leaves the badge unchanged (no error UI).
+- [ ] `Send diagnostics` with the network off shows "failed" (no crash).
 
-**States**
-- [ ] Loading shows the spinner; it stops on load.
-- [ ] With the network off, the failure label shows; tapping it retries.
+**Diagnostics**
+- [ ] After identify, `Send diagnostics` → "sent". Confirm the `sdk_diagnostics_received` event server-side carries only `platform`/`appVersion`/`osVersion`/`sdkVersion`.
+- [ ] `Send diagnostics` while anonymous is a no-op (no request).
 
-**SwiftUI**
-- [ ] `.gleanFeedFeedback(isPresented:)` presents/dismisses correctly bound to state.
-- [ ] `.gleanFeedRoadmap` / `.gleanFeedChangelog` likewise.
+**Unread count**
+- [ ] Signed-in: `Refresh unread` shows the server count.
+- [ ] Anonymous: unread is 0.
 
-**UIKit presenter**
-- [ ] `GleanFeed.showFeedback(from: someVC)` presents from the given controller.
-- [ ] `GleanFeed.showFeedback()` (no presenter) finds the top-most controller and presents.
+**UIKit presenters** (not wired in the SwiftUI sample; share the same WebView controller)
+- [ ] If exercising from a UIKit host: `GleanFeed.showFeedback(from:)` presents; `pushFeedback(onto:)` pushes with a back button (no Done).

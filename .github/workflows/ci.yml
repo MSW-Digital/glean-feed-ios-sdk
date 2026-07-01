@@ -36,3 +36,18 @@ jobs:
             -scheme GleanFeed \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+  sample-build:
+    name: build sample (iOS Simulator)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      # Compile-checks the sample app against the local package. Behavior is
+      # verified by hand in the simulator (docs/simulator-qa.md).
+      - name: Build the sample app
+        working-directory: Sample
+        run: |
+          xcodebuild build \
+            -scheme GleanFeedSample \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
