@@ -120,6 +120,20 @@ final class GleanFeedClientTests: XCTestCase {
         )
     }
 
+    func testSurfaceURLConsumesSSOTokenAfterFirstUse() async throws {
+        // First open uses the SSO handoff; the single-use token is consumed, so the
+        // second open uses the direct surface URL (rides the session cookie).
+        MockURLProtocol.handler = Fixtures.routeOK
+        let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: InMemoryTokenStore())
+        try await client.identify(userId: "u1", email: "a@b.com", name: nil, signature: "sig")
+
+        let first = try await client.surfaceURL(for: .feedback)
+        XCTAssertEqual(URLComponents(url: first, resolvingAgainstBaseURL: false)?.path, "/portal/acme/auth/sso")
+
+        let second = try await client.surfaceURL(for: .feedback)
+        XCTAssertEqual(second.absoluteString, "https://acme.gleanfeed.com/portal/acme/feedback")
+    }
+
     func testSurfaceURLAnonymousWhenNotIdentified() async throws {
         MockURLProtocol.handler = Fixtures.routeOK
         let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: InMemoryTokenStore())

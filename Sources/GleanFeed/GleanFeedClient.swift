@@ -61,6 +61,12 @@ final class GleanFeedClient {
         // In-memory identity is always cleared below; the rare case where the
         // Keychain delete fails (e.g. device locked) leaves the persisted token.
         // Harden before GF-216 ships — that's the milestone that reads it.
+        //
+        // v1 limitation: this does NOT clear the WebView's portal session cookie
+        // (the presentation layer uses the shared persistent data store so opens
+        // ride one session). A show* right after logout can still appear signed-in
+        // until the portal session expires. Track: GF-217 sample app / a hardening
+        // follow-up (iOS 14 can't scope a per-workspace WKWebsiteDataStore).
         try? tokenStore.clear()
         lock.lock()
         ssoToken = nil
@@ -68,23 +74,28 @@ final class GleanFeedClient {
         lock.unlock()
     }
 
-    /// Resolve the URL to open for a surface. When the user is identified and an
-    /// `ssoToken` is available, returns the SSO handoff URL (which mints an
-    /// embedded session cookie, then redirects to the surface); otherwise returns
-    /// the anonymous surface URL. Fails closed on malformed responses/URLs.
+    /// Resolve the URL to open for a surface. On the first call after `identify`,
+    /// returns the SSO handoff URL (mints an embedded session cookie, then
+    /// redirects to the surface). The `ssoToken` is single-use, so it's consumed
+    /// here: later opens return the anonymous surface URL and ride the WebView's
+    /// portal session cookie from that first handoff. Fails closed on malformed
+    /// responses/URLs.
     func surfaceURL(for view: GleanFeedView) async throws -> URL {
         let config = try await api.portalConfig(workspaceSlug: configuration.workspaceSlug, view: view)
         guard let surface = config.surfaces[view.rawValue] else {
             throw GleanFeedError.invalidResponse
         }
 
+        // Take the single-use token once, then clear it.
         let currentSsoToken: String? = {
             lock.lock(); defer { lock.unlock() }
-            return ssoToken
+            let token = ssoToken
+            ssoToken = nil
+            return token
         }()
 
         guard let ssoToken = currentSsoToken else {
-            // Anonymous fallback.
+            // Anonymous / post-handoff: direct surface URL (rides the session cookie).
             guard let url = URL(string: surface.url) else { throw GleanFeedError.invalidURL }
             return url
         }

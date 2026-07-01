@@ -42,7 +42,7 @@ import GleanFeed
 
 ## Usage
 
-The presentation API arrives in a later beta release. Planned shape:
+Configure once at launch:
 
 ```swift
 import GleanFeed
@@ -50,16 +50,38 @@ import GleanFeed
 GleanFeed.setup(workspaceId: "workspace-uuid", workspaceSlug: "acme")
 
 // Optional — `signature` is an HMAC computed on YOUR backend, never in the app.
-GleanFeed.identify(
+// Omit to browse anonymously.
+try await GleanFeed.identify(
     userId: "user-123",
     email: "person@example.com",
     name: "Person Example",
     signature: signatureFromServer
 )
+```
 
+Present a surface as a sheet — **UIKit** (omit `from:` to use the top-most controller):
+
+```swift
 GleanFeed.showFeedback()
-GleanFeed.showRoadmap()
+GleanFeed.showRoadmap(from: self)
 GleanFeed.showChangelog()
+
+// …or push onto your own navigation stack:
+GleanFeed.pushFeedback(onto: navigationController)
+```
+
+…or **SwiftUI**, bound to state:
+
+```swift
+.gleanFeedFeedback(isPresented: $showingFeedback)
+.gleanFeedRoadmap(isPresented: $showingRoadmap)
+.gleanFeedChangelog(isPresented: $showingChangelog)
+```
+
+Sign the user out of Glean Feed (does not touch your app's own auth):
+
+```swift
+GleanFeed.logout()
 ```
 
 ## License
