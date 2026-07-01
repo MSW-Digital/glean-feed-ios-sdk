@@ -26,6 +26,11 @@ final class GleanFeedWebViewController: UIViewController {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        // The portal embed shell is a fixed 100vh column with a pinned bottom tab
+        // bar. Constrain the WebView to the safe area (below) and stop the scroll
+        // view from adding its own inset, so 100vh equals the visible height and
+        // the tab bar stays pinned instead of falling below the fold.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.translatesAutoresizingMaskIntoConstraints = false
         return webView
     }()
@@ -84,8 +89,8 @@ final class GleanFeedWebViewController: UIViewController {
     private func layoutSubviews() {
         [webView, failureLabel, spinner].forEach(view.addSubview)
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
