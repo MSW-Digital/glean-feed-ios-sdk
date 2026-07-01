@@ -48,6 +48,7 @@ jobs:
         working-directory: Sample
         run: |
           xcodebuild build \
+            -project GleanFeedSample.xcodeproj \
             -scheme GleanFeedSample \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO

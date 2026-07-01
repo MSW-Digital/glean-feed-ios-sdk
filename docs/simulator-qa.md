@@ -7,17 +7,18 @@ until automated UI testing lands.
 
 ## Running the sample
 
-The sample is a standalone App package at [`../Sample`](../Sample) (kept as its
-own package so `import AppleProductTypes` stays out of the root `Package.swift`).
+The sample is a normal iOS app project at [`../Sample`](../Sample).
 
-1. Open the `Sample` folder in Xcode (`File → Open…` → `Sample`), or run
-   `xcodebuild build -scheme GleanFeedSample -destination 'generic/platform=iOS Simulator'`.
+1. Open **`Sample/GleanFeedSample.xcodeproj`** in Xcode. (The project is generated
+   from `Sample/project.yml` via XcodeGen; regenerate with `cd Sample && xcodegen generate`
+   only if you change that spec — the `.xcodeproj` is committed, so you don't need
+   XcodeGen just to run it.)
 2. Edit `Sample/Sources/GleanFeedSample/SampleConfig.swift` — set your
    `workspaceId` and `workspaceSlug` (both are public), and `.production` or a
    `.custom(baseURL:)` local dev origin. **No workspace secret goes in the app.**
 3. Generate a signed `signature` on your backend (HMAC over the workspace secret)
    and paste it into the app's Signature field to test signed mode.
-4. Run on a simulator.
+4. Pick a simulator and hit Run (⌘R).
 
 ## Checklist
 

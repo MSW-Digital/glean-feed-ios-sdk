@@ -1,0 +1,41 @@
+# XcodeGen spec for the sample app. The generated GleanFeedSample.xcodeproj is
+# committed, so you don't need XcodeGen to run it — just open the .xcodeproj.
+# Regenerate after changing this file with: cd Sample && xcodegen generate
+name: GleanFeedSample
+options:
+  bundleIdPrefix: com.gleanfeed
+  deploymentTarget:
+    iOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  GleanFeed:
+    path: ../
+targets:
+  GleanFeedSample:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/GleanFeedSample
+    dependencies:
+      - package: GleanFeed
+        product: GleanFeed
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gleanfeed.sample
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # Simulator runs need no signing; keeps "open and Run" friction-free.
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  # Explicit shared scheme so `xcodebuild -scheme GleanFeedSample` works on a
+  # fresh checkout (auto-schemes land in gitignored xcuserdata).
+  GleanFeedSample:
+    build:
+      targets:
+        GleanFeedSample: all
+    run:
+      config: Debug
