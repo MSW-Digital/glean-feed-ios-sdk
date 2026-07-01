@@ -26,6 +26,19 @@ struct APIClient {
         return try await send(request) { $0 == 401 || $0 == 403 ? .identityRejected : nil }
     }
 
+    func notifications(_ body: NotificationsRequest) async throws -> NotificationsResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/sdk/notifications"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw GleanFeedError.invalidResponse
+        }
+        // 401 means the stored token is stale/invalid (e.g. signed-out elsewhere).
+        return try await send(request) { $0 == 401 ? .identityRejected : nil }
+    }
+
     /// Fire-and-forget: any 2xx is success. The `{received:true}` body is ignored,
     /// so a best-effort diagnostics call never fails on an unexpected body shape.
     func diagnostics(_ body: DiagnosticsRequest) async throws {

@@ -26,6 +26,15 @@ struct DiagnosticsRequest: Encodable {
     let metadata: [String: String]
 }
 
+struct NotificationsRequest: Encodable {
+    let workspaceId: String
+    let userToken: String
+}
+
+struct NotificationsResponse: Decodable {
+    let unreadCount: Int
+}
+
 /// Response of `GET /api/sdk/portal-url` (GF-211).
 struct PortalConfigResponse: Decodable {
     let workspaceSlug: String

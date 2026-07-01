@@ -74,6 +74,24 @@ final class GleanFeedClient {
         lock.unlock()
     }
 
+    /// Unread count for a native badge / "What's new" dot. Signed-in users only —
+    /// returns `0` for anonymous users (no stored `userToken`) and for a
+    /// stale/invalid token (`401`), so a bad identity never surfaces an error.
+    /// Transport/server failures propagate so the caller can leave the badge as-is
+    /// (typically via `try?`).
+    func unreadCount() async throws -> Int {
+        guard let userToken = tokenStore.userToken() else {
+            return 0 // anonymous → no badge
+        }
+        do {
+            return try await api.notifications(
+                NotificationsRequest(workspaceId: configuration.workspaceId, userToken: userToken)
+            ).unreadCount
+        } catch GleanFeedError.identityRejected {
+            return 0 // stale/invalid token → treat as signed-out, no user-visible error
+        }
+    }
+
     /// Send bounded app/device diagnostics for the identified user. No-op if the
     /// user hasn't been identified (no stored `userToken`) — diagnostics are only
     /// ever attributed to a known end user. Best-effort; callers typically ignore

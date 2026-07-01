@@ -66,6 +66,14 @@ public enum GleanFeed {
         shared?.logout()
     }
 
+    /// Unread notification count for a native badge / "What's new" indicator.
+    /// Signed-in users only: returns `0` when `setup` wasn't called, the user
+    /// isn't identified, or the identity is stale. Transport/server failures throw
+    /// — call with `try?` to leave the badge unchanged on error.
+    public static func unreadCount() async throws -> Int {
+        try await shared?.unreadCount() ?? 0
+    }
+
     /// Send bounded app/device diagnostics (`platform`, `appVersion`, `osVersion`,
     /// `sdkVersion`) for the identified user — nothing else. Explicit and
     /// opt-in: call it after `identify` (e.g. from a "report a problem" action).
