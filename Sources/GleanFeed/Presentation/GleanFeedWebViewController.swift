@@ -18,7 +18,12 @@ final class GleanFeedWebViewController: UIViewController {
     private var loadTask: Task<Void, Never>?
 
     private lazy var webView: WKWebView = {
-        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        let configuration = WKWebViewConfiguration()
+        // Tag the User-Agent so the Glean Feed portal renders its compact embed
+        // shell instead of the full standalone site (the portal's
+        // isNativeSdkRequest keys off this marker). Appended to the default UA.
+        configuration.applicationNameForUserAgent = "GleanFeedSDK/\(GleanFeed.version)"
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
         webView.translatesAutoresizingMaskIntoConstraints = false
