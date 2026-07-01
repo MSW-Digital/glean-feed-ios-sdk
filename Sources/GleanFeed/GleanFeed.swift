@@ -15,7 +15,7 @@ import Foundation
 /// storage, and surface-URL resolution. No `WKWebView` presentation yet.
 public enum GleanFeed {
     /// The SDK version. Beta: the public API may change before `1.0.0`.
-    public static let version = "0.0.0"
+    public static let version = "0.1.0"
 
     /// The runtime created by `setup`. Internal so tests can inject a client
     /// built with a mocked `URLSession` / token store. Set once in `setup` (call

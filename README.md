@@ -22,26 +22,23 @@ QA checklist.
 
 ## Status
 
-This is the package skeleton (GF-212). The public API —
-`setup`, `identify`, `showFeedback`, `showRoadmap`, `showChangelog`, `logout` —
-lands in the following PRs. Track progress in the
-[Glean Feed — iOS SDK](https://linear.app/mswdigital/project/glean-feed-ios-sdk-86ad78558cb3)
-project.
+**`0.1.0` — first public beta.** The full v1 surface (`setup`, `identify`,
+`showFeedback`/`showRoadmap`/`showChangelog` + SwiftUI modifiers, `logout`,
+`unreadCount`, `sendDiagnostics`) is shipped. The public API may still change
+before `1.0.0` — pin an exact version and read the [changelog](CHANGELOG.md)
+before upgrading. Full docs: [gleanfeed.com/docs/ios-sdk](https://gleanfeed.com/docs/ios-sdk/overview).
 
 ## Installation
-
-> Version-pinned installation resolves once the first beta is tagged (GF-219).
-> Until then, depend on the `main` branch.
 
 Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-// After the first beta tag:
 .package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", from: "0.1.0")
-// Before then:
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", branch: "main")
 ```
+
+While the SDK is in beta, pin an exact version (`exact: "0.1.0"`) if you'd rather
+opt into upgrades deliberately.
 
 Then add `GleanFeed` to your target's dependencies and:
 
@@ -123,7 +120,7 @@ It sends **only** these four fields — nothing else:
 | `platform` | `ios` | constant |
 | `appVersion` | `1.2.3` | `CFBundleShortVersionString` (omitted if unset) |
 | `osVersion` | `18.1.0` | `ProcessInfo.operatingSystemVersion` |
-| `sdkVersion` | `0.0.0` | the SDK |
+| `sdkVersion` | `0.1.0` | the SDK |
 
 No logs, screenshots, arbitrary dictionaries, URLs, tokens, emails, names, or
 feedback text are ever collected. Diagnostics are **explicit and opt-in**:

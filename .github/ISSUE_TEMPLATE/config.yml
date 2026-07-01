@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://gleanfeed.com/docs/ios-sdk/overview
+    about: Install, identity, notifications, diagnostics, and troubleshooting.
+  - name: Dashboard setup (your identifiers)
+    url: https://app.gleanfeed.com
+    about: Workspace ID, slug, and install snippet — Settings → Connections → iOS SDK.
