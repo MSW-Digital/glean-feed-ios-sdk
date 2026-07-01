@@ -84,6 +84,28 @@ Sign the user out of Glean Feed (does not touch your app's own auth):
 GleanFeed.logout()
 ```
 
+## Diagnostics (optional)
+
+To attach bounded app/device context to an identified user, call:
+
+```swift
+try? await GleanFeed.sendDiagnostics()   // call after identify(), e.g. from a "report a problem" action
+```
+
+It sends **only** these four fields — nothing else:
+
+| Field | Example | Source |
+| --- | --- | --- |
+| `platform` | `ios` | constant |
+| `appVersion` | `1.2.3` | `CFBundleShortVersionString` (omitted if unset) |
+| `osVersion` | `18.1.0` | `ProcessInfo.operatingSystemVersion` |
+| `sdkVersion` | `0.0.0` | the SDK |
+
+No logs, screenshots, arbitrary dictionaries, URLs, tokens, emails, names, or
+feedback text are ever collected. Diagnostics are **explicit and opt-in**:
+**to disable, simply don't call `sendDiagnostics()`.** It is a no-op if the user
+isn't identified.
+
 ## License
 
 [MIT](LICENSE).

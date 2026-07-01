@@ -66,6 +66,15 @@ public enum GleanFeed {
         shared?.logout()
     }
 
+    /// Send bounded app/device diagnostics (`platform`, `appVersion`, `osVersion`,
+    /// `sdkVersion`) for the identified user — nothing else. Explicit and
+    /// opt-in: call it after `identify` (e.g. from a "report a problem" action).
+    /// No-op if `setup` wasn't called or the user isn't identified. Best-effort;
+    /// callers usually ignore errors (`try? await GleanFeed.sendDiagnostics()`).
+    public static func sendDiagnostics() async throws {
+        try await requireClient().sendDiagnostics()
+    }
+
     static func requireClient() throws -> GleanFeedClient {
         guard let shared else { throw GleanFeedError.notConfigured }
         return shared

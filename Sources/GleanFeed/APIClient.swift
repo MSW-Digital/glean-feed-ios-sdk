@@ -26,6 +26,18 @@ struct APIClient {
         return try await send(request) { $0 == 401 || $0 == 403 ? .identityRejected : nil }
     }
 
+    func diagnostics(_ body: DiagnosticsRequest) async throws -> DiagnosticsResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/sdk/diagnostics"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw GleanFeedError.invalidResponse
+        }
+        return try await send(request) { _ in nil }
+    }
+
     func portalConfig(workspaceSlug: String, view: GleanFeedView) async throws -> PortalConfigResponse {
         guard
             var components = URLComponents(
