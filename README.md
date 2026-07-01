@@ -65,6 +65,9 @@ Present a surface as a sheet — **UIKit** (omit `from:` to use the top-most con
 GleanFeed.showFeedback()
 GleanFeed.showRoadmap(from: self)
 GleanFeed.showChangelog()
+
+// …or push onto your own navigation stack:
+GleanFeed.pushFeedback(onto: navigationController)
 ```
 
 …or **SwiftUI**, bound to state:

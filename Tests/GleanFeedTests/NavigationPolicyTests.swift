@@ -41,4 +41,22 @@ final class NavigationPolicyTests: XCTestCase {
         // No resolved portal origin yet → never trap navigation in the WebView.
         XCTAssertEqual(decide("https://acme.gleanfeed.com/portal/acme/feedback", portalHost: ""), .openExternally)
     }
+
+    func testSubdomainOfPortalHostOpensExternally() {
+        // Exact host match only — a subdomain is a different origin. Locks this in
+        // so a future `hasSuffix`-style change can't silently open a hole.
+        XCTAssertEqual(decide("https://evil.acme.gleanfeed.com/x", portalHost: "acme.gleanfeed.com"), .openExternally)
+    }
+
+    func testOpaqueSchemesOpenExternally() {
+        // javascript:/data: have no host → external (and the delegate's scheme
+        // allowlist then declines to hand these to the system).
+        XCTAssertEqual(decide("javascript:doThing", portalHost: "acme.gleanfeed.com"), .openExternally)
+        XCTAssertEqual(decide("data:text/plain;base64,aGk=", portalHost: "acme.gleanfeed.com"), .openExternally)
+    }
+
+    func testHostWithPortDoesNotMatchBareHost() {
+        // Documents current behavior: URL.host strips the port, so this matches.
+        XCTAssertEqual(decide("https://acme.gleanfeed.com:8443/x", portalHost: "acme.gleanfeed.com"), .allow)
+    }
 }

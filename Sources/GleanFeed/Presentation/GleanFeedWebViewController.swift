@@ -2,14 +2,20 @@
 import UIKit
 import WebKit
 
-/// Hosts a Glean Feed surface in a `WKWebView` with a native Done button, a
-/// loading indicator, and a failure/retry state. Resolves the surface URL via the
-/// configured client (SSO handoff when identified, else anonymous), applies the
-/// navigation policy, and opens external links in the system browser.
+/// Hosts a Glean Feed surface in a `WKWebView` with a native Done button (when
+/// presented modally), a loading indicator, and a failure/retry state. Resolves
+/// the surface URL via the configured client (SSO handoff when identified, else
+/// anonymous), keeps portal navigation inside the WebView, and hands external
+/// links to the system browser.
 final class GleanFeedWebViewController: UIViewController {
     private let client: GleanFeedClient
     private let surface: GleanFeedView
+    /// Modal presentation shows a Done button; a pushed controller relies on the
+    /// navigation bar's back button instead.
+    var showsDoneButton = true
+
     private var portalHost = ""
+    private var loadTask: Task<Void, Never>?
 
     private lazy var webView: WKWebView = {
         let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
@@ -28,9 +34,10 @@ final class GleanFeedWebViewController: UIViewController {
 
     private lazy var failureLabel: UILabel = {
         let label = UILabel()
-        label.text = "Couldn’t load. Pull to retry."
+        label.text = "Couldn’t load. Tap to retry."
         label.textColor = .secondaryLabel
         label.textAlignment = .center
+        label.numberOfLines = 0
         label.isHidden = true
         label.isUserInteractionEnabled = true
         label.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(reload)))
@@ -47,14 +54,26 @@ final class GleanFeedWebViewController: UIViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
+    deinit { loadTask?.cancel() }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .done, target: self, action: #selector(done)
-        )
+        if showsDoneButton {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                barButtonSystemItem: .done, target: self, action: #selector(done)
+            )
+        }
         layoutSubviews()
         reload()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if isBeingDismissed || isMovingFromParent {
+            loadTask?.cancel()
+            webView.stopLoading()
+        }
     }
 
     private func layoutSubviews() {
@@ -69,6 +88,7 @@ final class GleanFeedWebViewController: UIViewController {
             failureLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             failureLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             failureLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            failureLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
         ])
     }
 
@@ -76,13 +96,17 @@ final class GleanFeedWebViewController: UIViewController {
         failureLabel.isHidden = true
         webView.isHidden = false
         spinner.startAnimating()
-        Task { @MainActor in
+
+        loadTask?.cancel()
+        loadTask = Task { @MainActor [weak self] in
+            guard let self else { return }
             do {
-                let url = try await client.surfaceURL(for: surface)
-                portalHost = url.host ?? ""
-                webView.load(URLRequest(url: url))
+                let url = try await self.client.surfaceURL(for: self.surface)
+                if Task.isCancelled { return }
+                self.portalHost = url.host ?? ""
+                self.webView.load(URLRequest(url: url))
             } catch {
-                showFailure()
+                if !Task.isCancelled { self.showFailure() }
             }
         }
     }
@@ -94,7 +118,7 @@ final class GleanFeedWebViewController: UIViewController {
     }
 
     @objc private func done() {
-        presentingViewController?.dismiss(animated: true)
+        dismiss(animated: true)
     }
 }
 
@@ -112,14 +136,14 @@ extension GleanFeedWebViewController: WKNavigationDelegate {
         case .allow:
             decisionHandler(.allow)
         case .openExternally:
-            // Only divert user-initiated link taps to the system browser; let
-            // same-host redirects (which are .allow above) and other programmatic
-            // navigations proceed so we don't strand the WebView mid-flow.
-            if navigationAction.navigationType == .linkActivated {
-                decisionHandler(.cancel)
+            // Never load a non-portal navigation inside the SDK WebView — that's
+            // how users get trapped. Cancel it, and hand off only user-safe web /
+            // contact schemes to the system; ignore javascript:/data:/file: and
+            // arbitrary app-scheme deep links coming from web content.
+            decisionHandler(.cancel)
+            if let scheme = url.scheme?.lowercased(),
+               ["http", "https", "mailto", "tel"].contains(scheme) {
                 UIApplication.shared.open(url)
-            } else {
-                decisionHandler(.allow)
             }
         }
     }
