@@ -3,6 +3,11 @@ import XCTest
 @testable import GleanFeed
 
 final class DiagnosticsTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        MockURLProtocol.reset()
+    }
+
     override func tearDown() {
         MockURLProtocol.reset()
         super.tearDown()
@@ -40,28 +45,57 @@ final class DiagnosticsTests: XCTestCase {
         XCTAssertEqual(metadata.platform, "ios")
     }
 
+    // MARK: request encoding (URLProtocol can't see the streamed httpBody)
+
+    func testDiagnosticsRequestEncodesExpectedFields() throws {
+        let body = DiagnosticsRequest(
+            workspaceId: "w1",
+            userToken: "utoken",
+            metadata: ["platform": "ios", "sdkVersion": "0.0.0"]
+        )
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any]
+        XCTAssertEqual(json?["workspaceId"] as? String, "w1")
+        XCTAssertEqual(json?["userToken"] as? String, "utoken")
+        XCTAssertEqual(json?["metadata"] as? [String: String], ["platform": "ios", "sdkVersion": "0.0.0"])
+    }
+
     // MARK: client send / skip
 
-    func testSendDiagnosticsSucceedsWhenIdentified() async throws {
-        MockURLProtocol.handler = Fixtures.routeOK
-        let store = InMemoryTokenStore()
-        let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: store)
+    func testSendDiagnosticsPostsToDiagnosticsWhenIdentified() async throws {
+        let paths = PathRecorder()
+        MockURLProtocol.handler = { request in
+            paths.record(request.url?.path ?? "")
+            return try Fixtures.routeOK(request)
+        }
+        let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: InMemoryTokenStore())
         try await client.identify(userId: "u1", email: "a@b.com", name: nil, signature: "sig")
 
-        try await client.sendDiagnostics() // does not throw
+        try await client.sendDiagnostics()
+
+        XCTAssertTrue(
+            paths.paths.contains { $0.hasSuffix("/api/sdk/diagnostics") },
+            "an identified sendDiagnostics must POST /api/sdk/diagnostics"
+        )
     }
 
     func testSendDiagnosticsSkipsWhenNotIdentified() async throws {
-        var requestCount = 0
-        MockURLProtocol.handler = { request in
-            requestCount += 1
-            return try Fixtures.routeOK(request)
+        MockURLProtocol.handler = { _ in
+            XCTFail("diagnostics must not hit the network without an identity")
+            return (200, Data())
         }
         // No identify → no stored userToken.
         let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: InMemoryTokenStore())
 
-        try await client.sendDiagnostics()
-
-        XCTAssertEqual(requestCount, 0, "diagnostics must not hit the network without an identity")
+        try await client.sendDiagnostics() // returns without a request
     }
+}
+
+/// Ordered record of request paths seen by the mock. Writes happen on the
+/// URLProtocol thread but are read after the `await` completes (happens-before),
+/// so a plain lock-guarded array is sufficient.
+final class PathRecorder {
+    private let lock = NSLock()
+    private var storage: [String] = []
+    func record(_ path: String) { lock.lock(); storage.append(path); lock.unlock() }
+    var paths: [String] { lock.lock(); defer { lock.unlock() }; return storage }
 }

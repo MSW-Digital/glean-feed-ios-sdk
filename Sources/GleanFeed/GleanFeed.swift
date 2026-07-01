@@ -72,7 +72,7 @@ public enum GleanFeed {
     /// No-op if `setup` wasn't called or the user isn't identified. Best-effort;
     /// callers usually ignore errors (`try? await GleanFeed.sendDiagnostics()`).
     public static func sendDiagnostics() async throws {
-        try await requireClient().sendDiagnostics()
+        try await shared?.sendDiagnostics()
     }
 
     static func requireClient() throws -> GleanFeedClient {

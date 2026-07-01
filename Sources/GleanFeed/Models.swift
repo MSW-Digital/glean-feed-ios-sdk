@@ -26,10 +26,6 @@ struct DiagnosticsRequest: Encodable {
     let metadata: [String: String]
 }
 
-struct DiagnosticsResponse: Decodable {
-    let received: Bool
-}
-
 /// Response of `GET /api/sdk/portal-url` (GF-211).
 struct PortalConfigResponse: Decodable {
     let workspaceSlug: String

@@ -26,7 +26,9 @@ struct APIClient {
         return try await send(request) { $0 == 401 || $0 == 403 ? .identityRejected : nil }
     }
 
-    func diagnostics(_ body: DiagnosticsRequest) async throws -> DiagnosticsResponse {
+    /// Fire-and-forget: any 2xx is success. The `{received:true}` body is ignored,
+    /// so a best-effort diagnostics call never fails on an unexpected body shape.
+    func diagnostics(_ body: DiagnosticsRequest) async throws {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/sdk/diagnostics"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -35,7 +37,7 @@ struct APIClient {
         } catch {
             throw GleanFeedError.invalidResponse
         }
-        return try await send(request) { _ in nil }
+        try await perform(request) { _ in nil }
     }
 
     func portalConfig(workspaceSlug: String, view: GleanFeedView) async throws -> PortalConfigResponse {
@@ -55,13 +57,14 @@ struct APIClient {
         return try await send(URLRequest(url: url)) { _ in nil }
     }
 
-    /// Sends a request and decodes `T`. `mapClientError` lets a caller turn a
-    /// specific status code into a typed error; otherwise non-2xx becomes
+    /// Sends a request and returns the 2xx body. `mapClientError` lets a caller
+    /// turn a specific status code into a typed error; otherwise non-2xx becomes
     /// `.server(statusCode:)`.
-    private func send<T: Decodable>(
+    @discardableResult
+    private func perform(
         _ request: URLRequest,
         mapClientError: (Int) -> GleanFeedError?
-    ) async throws -> T {
+    ) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
@@ -76,7 +79,15 @@ struct APIClient {
         guard (200..<300).contains(http.statusCode) else {
             throw mapClientError(http.statusCode) ?? .server(statusCode: http.statusCode)
         }
+        return data
+    }
 
+    /// Sends a request and decodes the 2xx body as `T`.
+    private func send<T: Decodable>(
+        _ request: URLRequest,
+        mapClientError: (Int) -> GleanFeedError?
+    ) async throws -> T {
+        let data = try await perform(request, mapClientError: mapClientError)
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {

@@ -82,7 +82,7 @@ final class GleanFeedClient {
         guard let userToken = tokenStore.userToken() else {
             return // no identity → skip cleanly
         }
-        _ = try await api.diagnostics(
+        try await api.diagnostics(
             DiagnosticsRequest(
                 workspaceId: configuration.workspaceId,
                 userToken: userToken,
