@@ -74,6 +74,23 @@ final class GleanFeedClient {
         lock.unlock()
     }
 
+    /// Send bounded app/device diagnostics for the identified user. No-op if the
+    /// user hasn't been identified (no stored `userToken`) — diagnostics are only
+    /// ever attributed to a known end user. Best-effort; callers typically ignore
+    /// the result.
+    func sendDiagnostics() async throws {
+        guard let userToken = tokenStore.userToken() else {
+            return // no identity → skip cleanly
+        }
+        try await api.diagnostics(
+            DiagnosticsRequest(
+                workspaceId: configuration.workspaceId,
+                userToken: userToken,
+                metadata: DiagnosticsMetadata.current().payload
+            )
+        )
+    }
+
     /// Resolve the URL to open for a surface. On the first call after `identify`,
     /// returns the SSO handoff URL (mints an embedded session cookie, then
     /// redirects to the surface). The `ssoToken` is single-use, so it's consumed

@@ -19,6 +19,13 @@ struct IdentifyResponse: Decodable {
     let ssoToken: String?
 }
 
+struct DiagnosticsRequest: Encodable {
+    let workspaceId: String
+    let userToken: String
+    /// Bounded, whitelisted metadata (see `DiagnosticsMetadata`).
+    let metadata: [String: String]
+}
+
 /// Response of `GET /api/sdk/portal-url` (GF-211).
 struct PortalConfigResponse: Decodable {
     let workspaceSlug: String

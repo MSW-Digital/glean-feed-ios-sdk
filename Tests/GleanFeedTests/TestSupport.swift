@@ -83,11 +83,14 @@ enum Fixtures {
     }
     """#)
 
-    /// Routes to identify vs portal-url by path.
+    static let diagnosticsOK = json(#"{"received":true}"#)
+
+    /// Routes to identify / portal-url / diagnostics by path.
     static func routeOK(_ request: URLRequest) throws -> (Int, Data) {
         let path = request.url?.path ?? ""
         if path.hasSuffix("/api/sdk/identify") { return (200, identifyOK) }
         if path.hasSuffix("/api/sdk/portal-url") { return (200, portalConfig) }
+        if path.hasSuffix("/api/sdk/diagnostics") { return (200, diagnosticsOK) }
         throw URLError(.unsupportedURL)
     }
 
