@@ -5,7 +5,7 @@ title: "[bug] "
 labels: bug
 ---
 
-**SDK version** (e.g. `0.1.1`):
+**SDK version** (e.g. `0.1.2`):
 **iOS version + device/simulator**:
 **Integration**: SwiftUI / UIKit
 

@@ -13,7 +13,7 @@ re-implementation, no sending users to Safari.
 
 ## Status
 
-**`0.1.1` — first public beta.** The full v1 surface (`setup`, `identify`,
+**`0.1.2` — first public beta.** The full v1 surface (`setup`, `identify`,
 `showFeedback`/`showRoadmap`/`showChangelog` + SwiftUI modifiers, `logout`,
 `unreadCount`, `sendDiagnostics`) is shipped. The public API may still change
 before `1.0.0` — pin an exact version and review
@@ -26,7 +26,7 @@ Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.1.1")
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.1.2")
 ```
 
 While the SDK is in beta, pin an exact version so upgrades are deliberate.
@@ -111,7 +111,7 @@ It sends **only** these four fields — nothing else:
 | `platform` | `ios` | constant |
 | `appVersion` | `1.2.3` | `CFBundleShortVersionString` (omitted if unset) |
 | `osVersion` | `18.1.0` | `ProcessInfo.operatingSystemVersion` |
-| `sdkVersion` | `0.1.1` | the SDK |
+| `sdkVersion` | `0.1.2` | the SDK |
 
 No logs, screenshots, arbitrary dictionaries, URLs, tokens, emails, names, or
 feedback text are ever collected. Diagnostics are **explicit and opt-in**:
