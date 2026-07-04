@@ -147,6 +147,7 @@ final class GleanFeedClientTests: XCTestCase {
         MockURLProtocol.handler = Fixtures.routeOK
         let client = Fixtures.makeClient(session: MockURLProtocol.session(), store: InMemoryTokenStore())
         try await client.identify(userId: "u1", email: "a@b.com", name: nil, signature: "sig")
+        _ = try await client.surfaceURL(for: .feedback)
         client.logout()
 
         let url = try await client.surfaceURL(for: .changelog)

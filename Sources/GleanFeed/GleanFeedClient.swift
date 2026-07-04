@@ -13,8 +13,14 @@ final class GleanFeedClient {
     private let lock = NSLock()
     private var ssoToken: String?
     private var identifiedUserId: String?
+    private var portalOrigins = Set<String>()
+    private var portalSessionClearTask: Task<Void, Never>?
 
-    init(configuration: GleanFeedConfiguration, session: URLSession = .shared, tokenStore: TokenStore? = nil) {
+    init(
+        configuration: GleanFeedConfiguration,
+        session: URLSession = .shared,
+        tokenStore: TokenStore? = nil
+    ) {
         self.configuration = configuration
         self.api = APIClient(baseURL: configuration.baseURL, session: session)
         self.tokenStore = tokenStore ?? KeychainTokenStore(account: configuration.workspaceId)
@@ -60,15 +66,15 @@ final class GleanFeedClient {
         // ponytail: clear() failure is swallowed to keep logout non-throwing.
         // In-memory identity is always cleared below; the rare case where the
         // Keychain delete fails (e.g. device locked) leaves the persisted token.
-        // v1 limitation: this does NOT clear the WebView's portal session cookie
-        // (the presentation layer uses the shared persistent data store so opens
-        // ride one session). A show* right after logout can still appear signed-in
-        // until the portal session expires.
         try? tokenStore.clear()
-        lock.lock()
-        ssoToken = nil
-        identifiedUserId = nil
-        lock.unlock()
+        let defaultOrigins = defaultPortalOrigins()
+        lock.withLock {
+            ssoToken = nil
+            identifiedUserId = nil
+            let origins = portalOrigins.union(defaultOrigins)
+            portalOrigins.removeAll()
+            portalSessionClearTask = Task { await clearGleanFeedPortalSession(for: origins) }
+        }
     }
 
     /// Unread count for a native badge / "What's new" dot. Signed-in users only —
@@ -113,10 +119,15 @@ final class GleanFeedClient {
     /// portal session cookie from that first handoff. Fails closed on malformed
     /// responses/URLs.
     func surfaceURL(for view: GleanFeedView) async throws -> URL {
+        if let clearTask = lock.withLock({ portalSessionClearTask }) {
+            await clearTask.value
+        }
+
         let config = try await api.portalConfig(workspaceSlug: configuration.workspaceSlug, view: view)
         guard let surface = config.surfaces[view.rawValue] else {
             throw GleanFeedError.invalidResponse
         }
+        rememberPortalOrigins(from: config)
 
         // Take the single-use token once, then clear it.
         let currentSsoToken = lock.withLock {
@@ -140,5 +151,28 @@ final class GleanFeedClient {
         ]
         guard let url = components.url else { throw GleanFeedError.invalidURL }
         return url
+    }
+
+    private func rememberPortalOrigins(from config: PortalConfigResponse) {
+        var origins = Set<String>()
+        ([config.portalBaseUrl, config.ssoUrl] + config.surfaces.values.map(\.url)).forEach {
+            if let url = URL(string: $0), let origin = gleanFeedOriginKey(url) {
+                origins.insert(origin)
+            }
+        }
+        lock.withLock { portalOrigins.formUnion(origins) }
+    }
+
+    private func defaultPortalOrigins() -> Set<String> {
+        var origins = Set<String>()
+        if let apiOrigin = gleanFeedOriginKey(configuration.baseURL) {
+            origins.insert(apiOrigin)
+        }
+        if configuration.baseURL.host?.lowercased() == "gleanfeed.com",
+           let url = URL(string: "https://\(configuration.workspaceSlug).gleanfeed.com"),
+           let origin = gleanFeedOriginKey(url) {
+            origins.insert(origin)
+        }
+        return origins
     }
 }
