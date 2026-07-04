@@ -11,15 +11,6 @@ re-implementation, no sending users to Safari.
 - Authenticated end users via **server-signed identity** — the workspace secret
   never ships in your app binary.
 
-## Sample app
-
-A runnable sample lives in [`Sample/`](Sample) — open
-`Sample/GleanFeedSample.xcodeproj` in Xcode and Run. It exercises setup,
-identify/logout, the three surfaces, diagnostics, and the unread count. Fill in
-your workspace values in `Sample/Sources/GleanFeedSample/SampleConfig.swift`; no
-secret goes in the app. See [`docs/simulator-qa.md`](docs/simulator-qa.md) for the
-QA checklist.
-
 ## Status
 
 **`0.1.0` — first public beta.** The full v1 surface (`setup`, `identify`,

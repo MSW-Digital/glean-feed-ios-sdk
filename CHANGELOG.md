@@ -16,8 +16,8 @@ include breaking changes while the API stabilizes — pin an exact version.
 
 - README install guidance now leads with exact version pinning while the SDK is
   in beta.
-- Sample app configuration now uses explicit placeholders for both workspace
-  identifiers.
+- Removed the sample app from the public package repo; release validation now
+  uses a fresh consuming app that imports the package from the public URL.
 
 ## 0.1.0 — 2026-07-01
 
