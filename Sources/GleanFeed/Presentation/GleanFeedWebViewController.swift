@@ -14,7 +14,7 @@ final class GleanFeedWebViewController: UIViewController {
     /// navigation bar's back button instead.
     var showsDoneButton = true
 
-    private var portalHost = ""
+    private var portalOrigin = ""
     private var loadTask: Task<Void, Never>?
 
     private lazy var webView: WKWebView = {
@@ -113,7 +113,7 @@ final class GleanFeedWebViewController: UIViewController {
             do {
                 let url = try await self.client.surfaceURL(for: self.surface)
                 if Task.isCancelled { return }
-                self.portalHost = url.host ?? ""
+                self.portalOrigin = gleanFeedOriginKey(url) ?? ""
                 self.webView.load(URLRequest(url: url))
             } catch {
                 if !Task.isCancelled { self.showFailure() }
@@ -142,7 +142,7 @@ extension GleanFeedWebViewController: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        switch gleanFeedNavigationDecision(for: url, portalHost: portalHost) {
+        switch gleanFeedNavigationDecision(for: url, portalOrigin: portalOrigin) {
         case .allow:
             decisionHandler(.allow)
         case .openExternally:

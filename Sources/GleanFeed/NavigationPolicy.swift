@@ -8,16 +8,28 @@ enum GleanFeedNavigationDecision: Equatable {
     case openExternally
 }
 
-/// Pure navigation policy. Keeps navigation on the loaded portal origin inside the
-/// WebView and sends everything else (third-party links, `mailto:`/`tel:`, external
-/// auth) to the system. `portalHost` is the host of the surface URL the WebView was
-/// opened with. Platform-agnostic so it's unit-testable without a simulator.
+/// Pure navigation policy. Keeps navigation on the loaded portal origin inside
+/// the WebView and sends everything else (third-party links, `mailto:`/`tel:`,
+/// external auth) to the system. `portalOrigin` is the normalized scheme/host/port
+/// of the surface URL the WebView was opened with. Platform-agnostic so it's
+/// unit-testable without a simulator.
 func gleanFeedNavigationDecision(
     for url: URL,
-    portalHost: String
+    portalOrigin: String
 ) -> GleanFeedNavigationDecision {
-    guard let host = url.host, !portalHost.isEmpty else {
+    guard let origin = gleanFeedOriginKey(url), !portalOrigin.isEmpty else {
         return .openExternally
     }
-    return host.caseInsensitiveCompare(portalHost) == .orderedSame ? .allow : .openExternally
+    return origin.caseInsensitiveCompare(portalOrigin) == .orderedSame ? .allow : .openExternally
+}
+
+func gleanFeedOriginKey(_ url: URL) -> String? {
+    guard let scheme = url.scheme?.lowercased(), let host = url.host?.lowercased() else {
+        return nil
+    }
+    guard scheme == "http" || scheme == "https" else {
+        return nil
+    }
+    let port = url.port ?? (scheme == "https" ? 443 : 80)
+    return "\(scheme)://\(host):\(port)"
 }

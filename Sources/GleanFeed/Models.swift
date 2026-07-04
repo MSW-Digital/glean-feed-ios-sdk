@@ -35,7 +35,7 @@ struct NotificationsResponse: Decodable {
     let unreadCount: Int
 }
 
-/// Response of `GET /api/sdk/portal-url` (GF-211).
+/// Response of `GET /api/sdk/portal-url`.
 struct PortalConfigResponse: Decodable {
     let workspaceSlug: String
     let portalBaseUrl: String

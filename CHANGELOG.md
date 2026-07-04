@@ -5,6 +5,20 @@ All notable changes to the Glean Feed iOS SDK. The format follows
 [Semantic Versioning](https://semver.org). **Pre-1.0:** minor versions may
 include breaking changes while the API stabilizes — pin an exact version.
 
+## Unreleased
+
+### Fixed
+
+- WebView navigation containment now requires the exact resolved portal origin
+  (scheme, host, and port), not just a matching host.
+
+### Changed
+
+- README install guidance now leads with exact version pinning while the SDK is
+  in beta.
+- Sample app configuration now uses explicit placeholders for both workspace
+  identifiers.
+
 ## 0.1.0 — 2026-07-01
 
 First public beta.

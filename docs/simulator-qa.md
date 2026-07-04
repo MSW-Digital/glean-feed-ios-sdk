@@ -37,7 +37,7 @@ Run the full list on **two simulators**: the **iOS 14 baseline** and the
 
 **Logout**
 - [ ] **Logout** → status "Anonymous", unread resets to 0.
-- [ ] (Known v1 limitation) a surface opened right after logout may still show signed-in until the portal session expires — the WebView cookie isn't cleared yet (GF-214 carryover).
+- [ ] (Known v1 limitation) a surface opened right after logout may still show signed-in until the portal session expires — the WebView cookie isn't cleared yet.
 
 **Navigation containment**
 - [ ] An in-portal link stays inside the WebView.

@@ -28,7 +28,7 @@ Run before creating each release tag. Tag only after every box is checked.
 - [ ] No secrets in the repo or sample — `grep -ri "secret\|hmac\|cryptokit"` over `Sources/` and `Sample/` finds only doc text.
 - [ ] No token logging — no `print`/`NSLog`/`os_log` in `Sources/`; tokens never appear in error descriptions.
 - [ ] Diagnostics bounded to `platform`/`appVersion`/`osVersion`/`sdkVersion`, opt-in only.
-- [ ] WebView keeps portal navigation in-container for the workspace origin; external and non-`http(s)`/`mailto`/`tel` schemes are handed off or cancelled, never loaded in the SDK WebView.
+- [ ] WebView keeps portal navigation in-container for the exact resolved portal origin; external and non-`http(s)`/`mailto`/`tel` schemes are handed off or cancelled, never loaded in the SDK WebView.
 
 ## Tag
 

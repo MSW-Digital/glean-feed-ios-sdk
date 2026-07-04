@@ -34,11 +34,10 @@ Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", from: "0.1.0")
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.1.0")
 ```
 
-While the SDK is in beta, pin an exact version (`exact: "0.1.0"`) if you'd rather
-opt into upgrades deliberately.
+While the SDK is in beta, pin an exact version so upgrades are deliberate.
 
 Then add `GleanFeed` to your target's dependencies and:
 

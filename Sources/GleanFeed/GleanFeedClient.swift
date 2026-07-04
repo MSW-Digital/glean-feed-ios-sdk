@@ -25,7 +25,7 @@ final class GleanFeedClient {
         return identifiedUserId != nil
     }
 
-    /// The persisted long-lived user token, for cookieless polls (GF-216).
+    /// The persisted long-lived user token, for cookieless polls.
     func userToken() -> String? {
         tokenStore.userToken()
     }
@@ -44,14 +44,14 @@ final class GleanFeedClient {
         )
 
         // Fail closed: persist the long-lived token BEFORE claiming identity, so we
-        // never report `isIdentified == true` with no stored token (which GF-216's
-        // cookieless polls depend on). A storage failure surfaces as `.storage`.
+        // never report `isIdentified == true` with no stored token. A storage
+        // failure surfaces as `.storage`.
         try tokenStore.saveUserToken(response.userToken)
 
-        lock.lock()
-        ssoToken = response.ssoToken
-        identifiedUserId = userId
-        lock.unlock()
+        lock.withLock {
+            ssoToken = response.ssoToken
+            identifiedUserId = userId
+        }
     }
 
     /// Clears SDK tokens and in-memory identity. Does NOT touch the host app's
@@ -60,13 +60,10 @@ final class GleanFeedClient {
         // ponytail: clear() failure is swallowed to keep logout non-throwing.
         // In-memory identity is always cleared below; the rare case where the
         // Keychain delete fails (e.g. device locked) leaves the persisted token.
-        // Harden before GF-216 ships — that's the milestone that reads it.
-        //
         // v1 limitation: this does NOT clear the WebView's portal session cookie
         // (the presentation layer uses the shared persistent data store so opens
         // ride one session). A show* right after logout can still appear signed-in
-        // until the portal session expires. Track: GF-217 sample app / a hardening
-        // follow-up (iOS 14 can't scope a per-workspace WKWebsiteDataStore).
+        // until the portal session expires.
         try? tokenStore.clear()
         lock.lock()
         ssoToken = nil
@@ -122,12 +119,11 @@ final class GleanFeedClient {
         }
 
         // Take the single-use token once, then clear it.
-        let currentSsoToken: String? = {
-            lock.lock(); defer { lock.unlock() }
+        let currentSsoToken = lock.withLock {
             let token = ssoToken
             ssoToken = nil
             return token
-        }()
+        }
 
         guard let ssoToken = currentSsoToken else {
             // Anonymous / post-handoff: direct surface URL (rides the session cookie).
