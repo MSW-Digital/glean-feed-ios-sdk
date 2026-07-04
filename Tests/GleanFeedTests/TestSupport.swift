@@ -66,7 +66,7 @@ enum Fixtures {
 
     static let identifyOK = json(#"{"userToken":"user-token-123","ssoToken":"sso-token-abc"}"#)
 
-    /// Mirrors the GF-211 `/api/sdk/portal-url` response shape exactly.
+    /// Mirrors the `/api/sdk/portal-url` response shape exactly.
     static let portalConfig = json(#"""
     {
       "workspaceSlug": "acme",

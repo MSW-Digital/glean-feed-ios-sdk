@@ -11,21 +11,13 @@ re-implementation, no sending users to Safari.
 - Authenticated end users via **server-signed identity** — the workspace secret
   never ships in your app binary.
 
-## Sample app
-
-A runnable sample lives in [`Sample/`](Sample) — open
-`Sample/GleanFeedSample.xcodeproj` in Xcode and Run. It exercises setup,
-identify/logout, the three surfaces, diagnostics, and the unread count. Fill in
-your workspace values in `Sample/Sources/GleanFeedSample/SampleConfig.swift`; no
-secret goes in the app. See [`docs/simulator-qa.md`](docs/simulator-qa.md) for the
-QA checklist.
-
 ## Status
 
 **`0.1.0` — first public beta.** The full v1 surface (`setup`, `identify`,
 `showFeedback`/`showRoadmap`/`showChangelog` + SwiftUI modifiers, `logout`,
 `unreadCount`, `sendDiagnostics`) is shipped. The public API may still change
-before `1.0.0` — pin an exact version and read the [changelog](CHANGELOG.md)
+before `1.0.0` — pin an exact version and review
+[GitHub Releases](https://github.com/MSW-Digital/glean-feed-ios-sdk/releases)
 before upgrading. Full docs: [gleanfeed.com/docs/ios-sdk](https://gleanfeed.com/docs/ios-sdk/overview).
 
 ## Installation
@@ -34,11 +26,10 @@ Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", from: "0.1.0")
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.1.0")
 ```
 
-While the SDK is in beta, pin an exact version (`exact: "0.1.0"`) if you'd rather
-opt into upgrades deliberately.
+While the SDK is in beta, pin an exact version so upgrades are deliberate.
 
 Then add `GleanFeed` to your target's dependencies and:
 

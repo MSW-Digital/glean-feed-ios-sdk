@@ -28,29 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Compile-checks the iOS-only presentation layer (UIKit/WebKit/SwiftUI),
-      # which `swift test` on the macOS host does not build. Behavior itself is
-      # covered by manual simulator QA (docs/simulator-qa.md).
+      # which `swift test` on the macOS host does not build.
       - name: Build for iOS Simulator
         run: |
           xcodebuild build \
             -scheme GleanFeed \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
-
-  sample-build:
-    name: build sample (iOS Simulator)
-    # macos-15 ships Xcode 16.x, which reads the generated project's objectVersion
-    # 77 (XcodeGen 2.45's format); Xcode 15.4 on macos-14 cannot.
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-      # Compile-checks the sample app against the local package. Behavior is
-      # verified by hand in the simulator (docs/simulator-qa.md).
-      - name: Build the sample app
-        working-directory: Sample
-        run: |
-          xcodebuild build \
-            -project GleanFeedSample.xcodeproj \
-            -scheme GleanFeedSample \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO

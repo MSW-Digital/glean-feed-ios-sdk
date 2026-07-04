@@ -8,11 +8,11 @@ import Foundation
 /// ```swift
 /// GleanFeed.setup(workspaceId: "workspace-uuid", workspaceSlug: "acme")
 /// try await GleanFeed.identify(userId: "u1", email: "a@b.com", signature: sigFromServer)
-/// // Presentation (showFeedback/showRoadmap/showChangelog) lands in GF-214.
+/// GleanFeed.showFeedback()
 /// ```
 ///
-/// This module is the core (GF-213): configuration, identity exchange, token
-/// storage, and surface-URL resolution. No `WKWebView` presentation yet.
+/// The SDK handles configuration, identity exchange, token storage, hosted
+/// surface presentation, unread counts, and bounded diagnostics.
 public enum GleanFeed {
     /// The SDK version. Beta: the public API may change before `1.0.0`.
     public static let version = "0.1.0"
