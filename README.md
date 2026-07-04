@@ -16,7 +16,8 @@ re-implementation, no sending users to Safari.
 **`0.1.0` — first public beta.** The full v1 surface (`setup`, `identify`,
 `showFeedback`/`showRoadmap`/`showChangelog` + SwiftUI modifiers, `logout`,
 `unreadCount`, `sendDiagnostics`) is shipped. The public API may still change
-before `1.0.0` — pin an exact version and read the [changelog](CHANGELOG.md)
+before `1.0.0` — pin an exact version and review
+[GitHub Releases](https://github.com/MSW-Digital/glean-feed-ios-sdk/releases)
 before upgrading. Full docs: [gleanfeed.com/docs/ios-sdk](https://gleanfeed.com/docs/ios-sdk/overview).
 
 ## Installation

@@ -1,8 +1,7 @@
 import Foundation
 
 // Wire types for the `/api/sdk/*` contracts. Keys match the backend responses
-// (camelCase) so no key-decoding strategy is needed. See the Glean Feed repo:
-// docs/api-contracts/ios-sdk.md.
+// (camelCase) so no key-decoding strategy is needed.
 
 struct IdentifyRequest: Encodable {
     let workspaceId: String
