@@ -17,6 +17,12 @@ public enum GleanFeedError: Error, Equatable {
     case storage
     /// A URL could not be constructed from the resolved configuration/response.
     case invalidURL
+  /// Portal self-service auth requires a registered reverse-domain callback scheme.
+  case nativeAuthNotConfigured
+  /// The pending browser/email authorization was not completed before expiry.
+  case nativeAuthExpired
+  /// The browser/email provider rejected the pending authentication.
+  case nativeAuthFailed(code: String)
 }
 
 extension GleanFeedError: LocalizedError {
@@ -36,6 +42,21 @@ extension GleanFeedError: LocalizedError {
             return "The Glean Feed user token could not be stored."
         case .invalidURL:
             return "A valid Glean Feed URL could not be constructed."
+    case .nativeAuthNotConfigured:
+      return "Native sign-in requires a registered callback URL scheme."
+    case .nativeAuthExpired:
+      return "The sign-in request expired. Start again."
+    case .nativeAuthFailed(let code):
+      switch code {
+      case "accounts_disabled":
+        return "Sign-in is not available for this portal."
+      case "ambiguous_identity":
+        return "This email cannot be matched to a single portal account."
+      case "customer_limit":
+        return "This portal is not accepting new members right now."
+      default:
+        return "Sign-in could not be completed. Try again."
+      }
         }
     }
 }

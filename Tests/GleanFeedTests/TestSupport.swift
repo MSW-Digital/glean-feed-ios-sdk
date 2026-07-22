@@ -6,9 +6,17 @@ import Foundation
 /// available in a `swift test` host).
 final class InMemoryTokenStore: TokenStore {
     private(set) var token: String?
+    private(set) var pending: PendingNativeAuth?
     func saveUserToken(_ token: String) throws { self.token = token }
     func userToken() -> String? { token }
-    func clear() throws { token = nil }
+    func clearUserToken() throws { token = nil }
+    func savePendingNativeAuth(_ pending: PendingNativeAuth) throws { self.pending = pending }
+    func pendingNativeAuth() -> PendingNativeAuth? { pending }
+    func clearPendingNativeAuth() throws { pending = nil }
+    func clear() throws {
+        token = nil
+        pending = nil
+    }
 }
 
 /// A `TokenStore` whose writes always fail — exercises the fail-closed
@@ -16,6 +24,10 @@ final class InMemoryTokenStore: TokenStore {
 struct FailingTokenStore: TokenStore {
     func saveUserToken(_ token: String) throws { throw GleanFeedError.storage }
     func userToken() -> String? { nil }
+    func clearUserToken() throws { throw GleanFeedError.storage }
+    func savePendingNativeAuth(_ pending: PendingNativeAuth) throws { throw GleanFeedError.storage }
+    func pendingNativeAuth() -> PendingNativeAuth? { nil }
+    func clearPendingNativeAuth() throws { throw GleanFeedError.storage }
     func clear() throws { throw GleanFeedError.storage }
 }
 
@@ -67,7 +79,8 @@ enum Fixtures {
     static let identifyOK = json(#"{"userToken":"user-token-123","ssoToken":"sso-token-abc"}"#)
 
     /// Mirrors the `/api/sdk/portal-url` response shape exactly.
-    static let portalConfig = json(#"""
+  static let portalConfig = json(
+    #"""
     {
       "workspaceSlug": "acme",
       "portalBaseUrl": "https://acme.gleanfeed.com",

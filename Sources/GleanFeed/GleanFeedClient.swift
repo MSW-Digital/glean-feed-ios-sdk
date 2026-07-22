@@ -27,7 +27,8 @@ final class GleanFeedClient {
     }
 
     var isIdentified: Bool {
-        lock.lock(); defer { lock.unlock() }
+    lock.lock()
+    defer { lock.unlock() }
         return identifiedUserId != nil
     }
 
@@ -112,6 +113,137 @@ final class GleanFeedClient {
         )
     }
 
+  var nativeAuthCallbackScheme: String? {
+    configuration.callbackURLScheme
+  }
+
+  func nativeAuthBridgeRequest(from body: Any) -> NativeAuthBridgeRequest? {
+    NativeAuthBridgeRequest(body: body, configuration: configuration)
+  }
+
+  func pendingNativeAuth() -> PendingNativeAuth? {
+    tokenStore.pendingNativeAuth()
+  }
+
+  /// Start a browser/email authorization transaction and persist its device
+  /// credential before the external user-agent is shown. A process suspension
+  /// or cold launch can therefore resume polling without copying browser cookies.
+  func startNativeAuth(_ request: NativeAuthBridgeRequest) async throws -> PendingNativeAuth {
+    guard
+      let callbackScheme = configuration.callbackURLScheme,
+      isValidNativeAuthCallbackScheme(callbackScheme)
+    else {
+      throw GleanFeedError.nativeAuthNotConfigured
+    }
+
+    let codeVerifier = try createNativeAuthCodeVerifier()
+    let response = try await api.startNativeAuth(
+      NativeAuthStartRequest(
+        callbackScheme: callbackScheme,
+        codeChallenge: nativeAuthCodeChallenge(codeVerifier),
+        email: request.email,
+        name: request.name,
+        provider: request.provider,
+        returnTo: request.returnTo,
+        workspaceId: configuration.workspaceId,
+        workspaceSlug: configuration.workspaceSlug
+      )
+    )
+    guard response.status == .authorizationPending else {
+      throw GleanFeedError.invalidResponse
+    }
+    if request.provider == .google && response.authorizationUrl == nil {
+      throw GleanFeedError.invalidResponse
+    }
+
+    let pending = PendingNativeAuth(
+      authorizationUrl: response.authorizationUrl,
+      authorizationCode: nil,
+      callbackResult: nil,
+      codeVerifier: codeVerifier,
+      expiresAt: Date().addingTimeInterval(TimeInterval(response.expiresIn)),
+      flowId: response.flowId,
+      flowSecret: response.flowSecret,
+      interval: max(2, min(response.interval, 30)),
+      provider: request.provider,
+      returnTo: request.returnTo
+    )
+    try tokenStore.savePendingNativeAuth(pending)
+    return pending
+  }
+
+  func pollNativeAuth() async throws -> NativeAuthPollOutcome {
+    guard let pending = tokenStore.pendingNativeAuth() else {
+      throw GleanFeedError.nativeAuthExpired
+    }
+    guard pending.expiresAt > Date() else {
+      try? tokenStore.clearPendingNativeAuth()
+      throw GleanFeedError.nativeAuthExpired
+    }
+
+    let response = try await api.pollNativeAuth(
+      NativeAuthPollRequest(
+        authorizationCode: pending.authorizationCode,
+        codeVerifier: pending.authorizationCode == nil ? nil : pending.codeVerifier,
+        flowId: pending.flowId,
+        flowSecret: pending.flowSecret
+      )
+    )
+    switch response.status {
+    case .authorizationPending:
+      return .pending(interval: max(2, min(response.interval ?? pending.interval, 30)))
+    case .failed:
+      try? tokenStore.clearPendingNativeAuth()
+      throw GleanFeedError.nativeAuthFailed(code: response.code ?? "provider_error")
+    case .complete:
+      guard let authUrl = response.authUrl else {
+        throw GleanFeedError.invalidResponse
+      }
+      if let userToken = response.userToken {
+        // The portal handoff is the primary credential. Do not discard its
+        // one-time URL if optional long-lived badge-token persistence fails.
+        try? tokenStore.saveUserToken(userToken)
+      } else {
+        // Team actors do not receive an end-user token. Remove any token left
+        // by a previous end-user session so badge/diagnostic calls cannot use
+        // the wrong identity after the portal handoff succeeds.
+        try? tokenStore.clearUserToken()
+      }
+      try? tokenStore.clearPendingNativeAuth()
+      lock.withLock {
+        identifiedUserId = "native:\(pending.flowId)"
+      }
+      return .complete(authUrl: authUrl)
+    }
+  }
+
+  func handleNativeAuthCallback(_ url: URL) -> Bool {
+    guard let callbackScheme = configuration.callbackURLScheme,
+      let callback = parseNativeAuthCallback(url, callbackScheme: callbackScheme),
+      let pending = tokenStore.pendingNativeAuth(),
+      callback.flowId == pending.flowId
+    else { return false }
+
+    let updated = PendingNativeAuth(
+      authorizationUrl: pending.authorizationUrl,
+      authorizationCode: callback.authorizationCode,
+      callbackResult: callback.result,
+      codeVerifier: pending.codeVerifier,
+      expiresAt: pending.expiresAt,
+      flowId: pending.flowId,
+      flowSecret: pending.flowSecret,
+      interval: pending.interval,
+      provider: pending.provider,
+      returnTo: pending.returnTo
+    )
+    do {
+      try tokenStore.savePendingNativeAuth(updated)
+      return true
+    } catch {
+      return false
+    }
+  }
+
     /// Resolve the URL to open for a surface. On the first call after `identify`,
     /// returns the SSO handoff URL (mints an embedded session cookie, then
     /// redirects to the surface). The `ssoToken` is single-use, so it's consumed
@@ -170,7 +302,8 @@ final class GleanFeedClient {
         }
         if configuration.baseURL.host?.lowercased() == "gleanfeed.com",
            let url = URL(string: "https://\(configuration.workspaceSlug).gleanfeed.com"),
-           let origin = gleanFeedOriginKey(url) {
+      let origin = gleanFeedOriginKey(url)
+    {
             origins.insert(origin)
         }
         return origins

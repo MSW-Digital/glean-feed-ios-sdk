@@ -34,6 +34,70 @@ struct NotificationsResponse: Decodable {
     let unreadCount: Int
 }
 
+enum NativeAuthProvider: String, Codable {
+  case google
+  case magicLink = "magic_link"
+}
+
+struct NativeAuthStartRequest: Encodable {
+  let callbackScheme: String
+  let codeChallenge: String
+  let email: String?
+  let name: String?
+  let provider: NativeAuthProvider
+  let returnTo: String
+  let workspaceId: String
+  let workspaceSlug: String
+}
+
+struct NativeAuthStartResponse: Decodable {
+  let authorizationUrl: URL?
+  let expiresIn: Int
+  let flowId: String
+  let flowSecret: String
+  let interval: Int
+  let status: NativeAuthPollStatus
+}
+
+struct NativeAuthPollRequest: Encodable {
+  let authorizationCode: String?
+  let codeVerifier: String?
+  let flowId: String
+  let flowSecret: String
+}
+
+enum NativeAuthPollStatus: String, Codable {
+  case authorizationPending = "authorization_pending"
+  case complete
+  case failed
+}
+
+struct NativeAuthPollResponse: Decodable {
+  let authUrl: URL?
+  let code: String?
+  let interval: Int?
+  let status: NativeAuthPollStatus
+  let userToken: String?
+}
+
+struct PendingNativeAuth: Codable, Equatable {
+  let authorizationUrl: URL?
+  let authorizationCode: String?
+  let callbackResult: String?
+  let codeVerifier: String
+  let expiresAt: Date
+  let flowId: String
+  let flowSecret: String
+  let interval: Int
+  let provider: NativeAuthProvider
+  let returnTo: String
+}
+
+enum NativeAuthPollOutcome: Equatable {
+  case complete(authUrl: URL)
+  case pending(interval: Int)
+}
+
 /// Response of `GET /api/sdk/portal-url`.
 struct PortalConfigResponse: Decodable {
     let workspaceSlug: String

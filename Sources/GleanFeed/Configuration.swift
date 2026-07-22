@@ -34,5 +34,36 @@ public enum GleanFeedView: String, CaseIterable, Sendable {
 struct GleanFeedConfiguration {
     let workspaceId: String
     let workspaceSlug: String
+  let callbackURLScheme: String?
     let baseURL: URL
+
+  init(
+    workspaceId: String,
+    workspaceSlug: String,
+    callbackURLScheme: String? = nil,
+    baseURL: URL
+  ) {
+    self.workspaceId = workspaceId
+    self.workspaceSlug = workspaceSlug
+    self.callbackURLScheme = callbackURLScheme
+    self.baseURL = baseURL
+  }
+}
+
+private let reservedNativeAuthSchemes: Set<String> = [
+  "data", "file", "http", "https", "javascript", "mailto", "tel",
+]
+
+func isValidNativeAuthCallbackScheme(_ value: String) -> Bool {
+  guard value == value.lowercased(), value.contains("."), !reservedNativeAuthSchemes.contains(value)
+  else {
+    return false
+  }
+  guard value.count >= 3, value.count <= 128, value.first?.isLetter == true else {
+    return false
+  }
+  return value.allSatisfy { character in
+    character.isLetter || character.isNumber || character == "+" || character == "-"
+      || character == "."
+  }
 }
