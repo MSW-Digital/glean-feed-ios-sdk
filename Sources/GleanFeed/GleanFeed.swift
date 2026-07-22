@@ -15,7 +15,7 @@ import Foundation
 /// surface presentation, unread counts, and bounded diagnostics.
 public enum GleanFeed {
     /// The SDK version. Beta: the public API may change before `1.0.0`.
-    public static let version = "0.1.2"
+  public static let version = "0.2.0"
 
     /// The runtime created by `setup`. Internal so tests can inject a client
     /// built with a mocked `URLSession` / token store. Set once in `setup` (call
@@ -42,6 +42,28 @@ public enum GleanFeed {
         )
     }
 
+  /// Configure the SDK with portal self-service sign-in enabled.
+  ///
+  /// Register `callbackURLScheme` in the host app's URL Types. Use a unique,
+  /// lowercase reverse-domain value such as `com.example.app.gleanfeed`.
+  /// The callback wakes the app only; credentials are exchanged directly
+  /// between this SDK and Glean Feed.
+  public static func setup(
+    workspaceId: String,
+    workspaceSlug: String,
+    callbackURLScheme: String,
+    environment: GleanFeedEnvironment = .production
+  ) {
+    shared = GleanFeedClient(
+      configuration: GleanFeedConfiguration(
+        workspaceId: workspaceId,
+        workspaceSlug: workspaceSlug,
+        callbackURLScheme: callbackURLScheme,
+        baseURL: environment.baseURL
+      )
+    )
+  }
+
     /// Identify the current end user. `signature` is an HMAC computed on YOUR
     /// backend with the workspace secret — never in the app. Omit identity to
     /// browse anonymously. Throws ``GleanFeedError`` on failure; callers may
@@ -66,6 +88,15 @@ public enum GleanFeed {
         shared?.logout()
     }
 
+  /// Forward the callback URL delivered by SwiftUI `onOpenURL` or the UIKit
+  /// scene/app delegate. Returns `true` only for the active Glean Feed sign-in.
+  @discardableResult
+  public static func handleOpenURL(_ url: URL) -> Bool {
+    guard let shared, shared.handleNativeAuthCallback(url) else { return false }
+    NotificationCenter.default.post(name: .gleanFeedNativeAuthCallback, object: nil)
+    return true
+  }
+
     /// Unread notification count for a native badge / "What's new" indicator.
     /// Signed-in users only: returns `0` when `setup` wasn't called, the user
     /// isn't identified, or the identity is stale. Transport/server failures throw
@@ -87,4 +118,8 @@ public enum GleanFeed {
         guard let shared else { throw GleanFeedError.notConfigured }
         return shared
     }
+}
+
+extension Notification.Name {
+  static let gleanFeedNativeAuthCallback = Notification.Name("GleanFeedNativeAuthCallback")
 }

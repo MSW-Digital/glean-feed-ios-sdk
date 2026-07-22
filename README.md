@@ -3,17 +3,18 @@
 > **Beta.** The public API may change before `1.0.0`.
 
 A thin Swift Package that presents hosted [Glean Feed](https://gleanfeed.com)
-feedback, roadmap, and changelog surfaces inside your iOS app — no native
-re-implementation, no sending users to Safari.
+feedback, roadmap, and changelog surfaces inside your iOS app.
 
 - **iOS 14+**, Swift 5.9+, Swift Package Manager.
 - Hosted Glean Feed portal surfaces rendered in a native `WKWebView`.
 - Authenticated end users via **server-signed identity** — the workspace secret
   never ships in your app binary.
+- Self-service magic-link and Google sign-in via Apple's secure authentication
+  session, a PKCE-bound app callback, and an in-WebView one-time handoff.
 
 ## Status
 
-**`0.1.2` — first public beta.** The full v1 surface (`setup`, `identify`,
+**`0.2.0` — native self-service authentication.** The public surface (`setup`, `identify`,
 `showFeedback`/`showRoadmap`/`showChangelog` + SwiftUI modifiers, `logout`,
 `unreadCount`, `sendDiagnostics`) is shipped. The public API may still change
 before `1.0.0` — pin an exact version and review
@@ -26,7 +27,7 @@ Add the package in Xcode (**File → Add Package Dependencies…**) or in your
 `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.1.2")
+.package(url: "https://github.com/MSW-Digital/glean-feed-ios-sdk", exact: "0.2.0")
 ```
 
 While the SDK is in beta, pin an exact version so upgrades are deliberate.
@@ -44,7 +45,11 @@ Configure once at launch:
 ```swift
 import GleanFeed
 
-GleanFeed.setup(workspaceId: "workspace-uuid", workspaceSlug: "acme")
+GleanFeed.setup(
+    workspaceId: "workspace-uuid",
+    workspaceSlug: "acme",
+    callbackURLScheme: "com.example.your-app.gleanfeed"
+)
 
 // Optional — `signature` is an HMAC computed on YOUR backend, never in the app.
 // Omit to browse anonymously.
@@ -55,6 +60,13 @@ try await GleanFeed.identify(
     signature: signatureFromServer
 )
 ```
+
+Register the same reverse-domain scheme in your target's URL Types. For magic
+links, forward incoming URLs to `GleanFeed.handleOpenURL(_:)` from SwiftUI's
+`onOpenURL` or your UIKit scene delegate. Google callbacks are handled directly
+by `ASWebAuthenticationSession`. The callback contains a short-lived one-time
+authorization code bound to the initiating app instance with PKCE; it never
+contains a portal session or long-lived user token.
 
 Present a surface as a sheet — **UIKit** (omit `from:` to use the top-most controller):
 
@@ -111,7 +123,7 @@ It sends **only** these four fields — nothing else:
 | `platform` | `ios` | constant |
 | `appVersion` | `1.2.3` | `CFBundleShortVersionString` (omitted if unset) |
 | `osVersion` | `18.1.0` | `ProcessInfo.operatingSystemVersion` |
-| `sdkVersion` | `0.1.2` | the SDK |
+| `sdkVersion` | `0.2.0` | the SDK |
 
 No logs, screenshots, arbitrary dictionaries, URLs, tokens, emails, names, or
 feedback text are ever collected. Diagnostics are **explicit and opt-in**:

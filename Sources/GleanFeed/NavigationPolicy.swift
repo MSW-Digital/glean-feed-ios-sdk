@@ -33,3 +33,13 @@ func gleanFeedOriginKey(_ url: URL) -> String? {
     let port = url.port ?? (scheme == "https" ? 443 : 80)
     return "\(scheme)://\(host):\(port)"
 }
+
+/// A native-auth completion URL carries a one-time portal handoff credential.
+/// Accept it only on the exact portal origin already resolved by the SDK and
+/// only at the dedicated handoff endpoint.
+func isTrustedNativeAuthHandoff(_ url: URL, portalOrigin: String) -> Bool {
+  guard gleanFeedOriginKey(url)?.caseInsensitiveCompare(portalOrigin) == .orderedSame else {
+    return false
+  }
+  return url.path == "/auth/oauth-finish"
+}

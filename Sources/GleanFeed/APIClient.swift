@@ -39,6 +39,53 @@ struct APIClient {
         return try await send(request) { $0 == 401 ? .identityRejected : nil }
     }
 
+  func startNativeAuth(_ body: NativeAuthStartRequest) async throws -> NativeAuthStartResponse {
+    var request = URLRequest(url: baseURL.appendingPathComponent("api/sdk/auth/start"))
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    do {
+      request.httpBody = try JSONEncoder().encode(body)
+    } catch {
+      throw GleanFeedError.invalidResponse
+    }
+    return try await send(request) { _ in nil }
+  }
+
+  func pollNativeAuth(_ body: NativeAuthPollRequest) async throws -> NativeAuthPollResponse {
+    var request = URLRequest(url: baseURL.appendingPathComponent("api/sdk/auth/poll"))
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    do {
+      request.httpBody = try JSONEncoder().encode(body)
+    } catch {
+      throw GleanFeedError.invalidResponse
+    }
+    let data: Data
+    let response: URLResponse
+    do {
+      (data, response) = try await session.gleanfeed_data(for: request)
+    } catch {
+      throw GleanFeedError.network
+    }
+    guard let http = response as? HTTPURLResponse else {
+      throw GleanFeedError.invalidResponse
+    }
+    if http.statusCode == 410 {
+      throw GleanFeedError.nativeAuthExpired
+    }
+    if http.statusCode == 401 {
+      throw GleanFeedError.identityRejected
+    }
+    guard (200..<300).contains(http.statusCode) || http.statusCode == 409 else {
+      throw GleanFeedError.server(statusCode: http.statusCode)
+    }
+    do {
+      return try JSONDecoder().decode(NativeAuthPollResponse.self, from: data)
+    } catch {
+      throw GleanFeedError.invalidResponse
+    }
+  }
+
     /// Fire-and-forget: any 2xx is success. The `{received:true}` body is ignored,
     /// so a best-effort diagnostics call never fails on an unexpected body shape.
     func diagnostics(_ body: DiagnosticsRequest) async throws {
@@ -53,7 +100,8 @@ struct APIClient {
         try await perform(request) { _ in nil }
     }
 
-    func portalConfig(workspaceSlug: String, view: GleanFeedView) async throws -> PortalConfigResponse {
+  func portalConfig(workspaceSlug: String, view: GleanFeedView) async throws -> PortalConfigResponse
+  {
         guard
             var components = URLComponents(
                 url: baseURL.appendingPathComponent("api/sdk/portal-url"),
