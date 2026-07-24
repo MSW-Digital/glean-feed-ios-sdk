@@ -18,17 +18,13 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
     }
 }
 
-/// Hosts a Glean Feed surface in a `WKWebView` with a native Done button (when
-/// presented modally), a loading indicator, and a failure/retry state. Resolves
-/// the surface URL via the configured client (SSO handoff when identified, else
-/// anonymous), keeps portal navigation inside the WebView, and hands external
-/// links to the system browser.
+/// Hosts a Glean Feed surface in a `WKWebView` with a loading indicator and a
+/// failure/retry state. Resolves the surface URL via the configured client (SSO
+/// handoff when identified, else anonymous), keeps portal navigation inside the
+/// WebView, and hands external links to the system browser.
 final class GleanFeedWebViewController: UIViewController {
     private let client: GleanFeedClient
     private let surface: GleanFeedView
-    /// Modal presentation shows a Done button; a pushed controller relies on the
-    /// navigation bar's back button instead.
-    var showsDoneButton = true
 
     private var portalOrigin = ""
     private var loadTask: Task<Void, Never>?
@@ -101,11 +97,6 @@ final class GleanFeedWebViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        if showsDoneButton {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(
-                barButtonSystemItem: .done, target: self, action: #selector(done)
-            )
-        }
         layoutSubviews()
         activeObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification,
@@ -309,10 +300,6 @@ final class GleanFeedWebViewController: UIViewController {
 
     private func authErrorMessage(_ error: Error) -> String {
         (error as? LocalizedError)?.errorDescription ?? "Couldn’t complete sign-in. Try again."
-    }
-
-    @objc private func done() {
-        dismiss(animated: true)
     }
 }
 
