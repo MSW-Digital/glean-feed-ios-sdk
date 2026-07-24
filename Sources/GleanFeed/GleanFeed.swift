@@ -15,7 +15,7 @@ import Foundation
 /// surface presentation, unread counts, and bounded diagnostics.
 public enum GleanFeed {
     /// The SDK version. Beta: the public API may change before `1.0.0`.
-  public static let version = "0.2.0"
+  public static let version = "0.2.1"
 
     /// The runtime created by `setup`. Internal so tests can inject a client
     /// built with a mocked `URLSession` / token store. Set once in `setup` (call
