@@ -2,24 +2,37 @@
 import SwiftUI
 import UIKit
 
-/// SwiftUI host for a Glean Feed surface — wraps the UIKit web view controller in
-/// a navigation controller (for the Done button).
+/// SwiftUI host for a Glean Feed surface.
 struct GleanFeedSurfaceView: UIViewControllerRepresentable {
     let surface: GleanFeedView
 
     func makeUIViewController(context: Context) -> UIViewController {
         guard let client = GleanFeed.shared else {
             assertionFailure("GleanFeed.setup(...) must be called before presenting a surface.")
-            // Release builds skip the assertion — return a dismissable placeholder
-            // instead of a blank, un-dismissable sheet.
-            return UINavigationController(rootViewController: GleanFeedUnavailableViewController())
+            // Release builds skip the assertion — return a visible placeholder
+            // instead of a blank sheet. The containing sheet stays drag-dismissable.
+            return GleanFeedUnavailableViewController()
         }
-        return UINavigationController(
-            rootViewController: GleanFeedWebViewController(client: client, surface: surface)
-        )
+        return GleanFeedWebViewController(client: client, surface: surface)
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
+
+private struct GleanFeedSheetContent: View {
+    let surface: GleanFeedView
+
+    @ViewBuilder
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            GleanFeedSurfaceView(surface: surface)
+                .ignoresSafeArea()
+                .presentationDragIndicator(.visible)
+        } else {
+            GleanFeedSurfaceView(surface: surface)
+                .ignoresSafeArea()
+        }
+    }
 }
 
 /// Shown if a surface is requested before `GleanFeed.setup(...)` — a dismissable
@@ -28,9 +41,6 @@ final class GleanFeedUnavailableViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .done, target: self, action: #selector(done)
-        )
 
         let label = UILabel()
         label.text = "Glean Feed isn’t set up yet."
@@ -46,31 +56,27 @@ final class GleanFeedUnavailableViewController: UIViewController {
             label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
         ])
     }
-
-    @objc private func done() {
-        dismiss(animated: true)
-    }
 }
 
 public extension View {
     /// Present the Glean Feed **feedback** surface as a sheet bound to `isPresented`.
     func gleanFeedFeedback(isPresented: Binding<Bool>) -> some View {
         sheet(isPresented: isPresented) {
-            GleanFeedSurfaceView(surface: .feedback).ignoresSafeArea()
+            GleanFeedSheetContent(surface: .feedback)
         }
     }
 
     /// Present the Glean Feed **roadmap** surface as a sheet bound to `isPresented`.
     func gleanFeedRoadmap(isPresented: Binding<Bool>) -> some View {
         sheet(isPresented: isPresented) {
-            GleanFeedSurfaceView(surface: .roadmap).ignoresSafeArea()
+            GleanFeedSheetContent(surface: .roadmap)
         }
     }
 
     /// Present the Glean Feed **changelog** surface as a sheet bound to `isPresented`.
     func gleanFeedChangelog(isPresented: Binding<Bool>) -> some View {
         sheet(isPresented: isPresented) {
-            GleanFeedSurfaceView(surface: .changelog).ignoresSafeArea()
+            GleanFeedSheetContent(surface: .changelog)
         }
     }
 }

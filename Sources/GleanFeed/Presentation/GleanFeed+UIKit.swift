@@ -22,8 +22,7 @@ extension GleanFeed {
         present(.changelog, from: presenter)
     }
 
-    /// Push the feedback surface onto an existing navigation stack (relies on the
-    /// nav bar's back button rather than a Done button).
+    /// Push the feedback surface onto an existing navigation stack.
     @MainActor
     public static func pushFeedback(onto navigationController: UINavigationController) {
         push(.feedback, onto: navigationController)
@@ -46,17 +45,18 @@ extension GleanFeed {
         guard let controller = makeController(for: surface) else { return }
         guard let host = presenter ?? topMostViewController() else { return }
 
-        let navigation = UINavigationController(rootViewController: controller)
-        // Standard card sheet on iPhone; use a detent-configured sheet later if
-        // partial-height is wanted (iOS 15+).
-        navigation.modalPresentationStyle = .pageSheet
-        host.present(navigation, animated: true)
+        // Present the content directly so the hosted portal header is the sheet's
+        // only top chrome. Standard page sheets remain dismissable by dragging.
+        controller.modalPresentationStyle = .pageSheet
+        if #available(iOS 15.0, *) {
+            controller.sheetPresentationController?.prefersGrabberVisible = true
+        }
+        host.present(controller, animated: true)
     }
 
     @MainActor
     private static func push(_ surface: GleanFeedView, onto navigationController: UINavigationController) {
         guard let controller = makeController(for: surface) else { return }
-        controller.showsDoneButton = false
         navigationController.pushViewController(controller, animated: true)
     }
 
